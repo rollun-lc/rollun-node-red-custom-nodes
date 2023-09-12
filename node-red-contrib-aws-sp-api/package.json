@@ -1,0 +1,22 @@
+{
+  "name": "node-red-contrib-rollun-aws-sp-api",
+  "description": "Node-RED nodes to access AWS Selling Partner API",
+  "version": "1.0.0",
+  "dependencies": {},
+  "scripts": {
+    "fetch-latest-models": "rm -rf selling-partner-api-models && git clone git@github.com:amzn/selling-partner-api-models.git && rm -rf selling-partner-api-models/.git*"
+  },
+  "keywords": [
+    "node-red",
+    "aws",
+    "sp",
+    "selling",
+    "partner"
+  ],
+  "node-red": {
+    "nodes": {
+      "aws-sp-api-config": "aws-sp-api-config.js",
+      "aws-sp-api": "aws-sp-api.js"
+    }
+  }
+}
