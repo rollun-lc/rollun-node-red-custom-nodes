@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "node-red": "3.0.2",
+    "node-red-contrib-rollun-aws-sp-api": "file:./node-red-contrib-rollun-aws-sp-api",
     "node-red-contrib-rollun-autodist-api-v062": "file:./node-red-contrib-rollun-autodist-api-v062",
     "node-red-contrib-rollun-backend-utils": "file:./node-red-contrib-rollun-utils/backend-utils",
     "node-red-contrib-rollun-common": "file:./node-red-contrib-rollun-common",

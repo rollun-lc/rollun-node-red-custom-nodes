@@ -15,8 +15,8 @@
   ],
   "node-red": {
     "nodes": {
-      "aws-sp-api-config": "aws-sp-api-config.js",
-      "aws-sp-api": "aws-sp-api.js"
+      "rollun-aws-sp-api-credentials": "aws-sp-api-credentials.js",
+      "rollun-aws-sp-api": "aws-sp-api.js"
     }
   }
 }

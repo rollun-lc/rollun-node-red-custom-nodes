@@ -1,15 +1,16 @@
 const fs = require('fs');
 
 function readOpenApi(file) {
-  console.log('read', file);
   return JSON.parse(fs.readFileSync(file, 'utf-8'), null, 2);
 }
 
 function readAwsSpApiModels(path) {
+  path = __dirname + '/' + path;
+
   const files = fs.readdirSync(path);
 
   const apis = files.map((file) => {
-    const versions = fs.readdirSync(`${path}${file}`);
+    const versions = fs.readdirSync(`${path}/${file}`);
 
     return {
       // convert 'aplus-content-api' to 'Aplus Content Api'

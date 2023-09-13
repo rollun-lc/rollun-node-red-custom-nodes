@@ -9,5 +9,5 @@ module.exports = function (RED) {
     this.awsSecretAccessKey = n.awsSecretAccessKey;
   }
 
-  RED.nodes.registerType('aws-sp-api-credentials', AwsSpApiConfig);
+  RED.nodes.registerType('rollun-aws-sp-api-credentials', AwsSpApiConfig);
 };
