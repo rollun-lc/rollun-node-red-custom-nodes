@@ -1,7 +1,30 @@
 const fs = require('fs');
 
 function readOpenApi(file) {
-  return JSON.parse(fs.readFileSync(file, 'utf-8'), null, 2);
+  const openapi = JSON.parse(fs.readFileSync(file, 'utf-8'), null, 2);
+
+  // in some cases openapi may be invalid and can include
+  // non http methods in path, need to clean it up
+  // Example:
+
+  // "paths": {
+  //   "/aplus/2020-11-01/contentDocuments": {
+  //     "get": { ... }
+  //     "post": { ... }
+  //     "parameters": []
+  // }
+  // parameters - needs to be removed
+
+  Object.values(openapi.paths).forEach((path) => {
+    const validHttpMethods = ['get', 'post', 'put', 'delete', 'patch', 'head'];
+    Object.keys(path).forEach((method) => {
+      if (!validHttpMethods.includes(method)) {
+        delete path[method];
+      }
+    });
+  });
+
+  return openapi;
 }
 
 function readAwsSpApiModels(path) {

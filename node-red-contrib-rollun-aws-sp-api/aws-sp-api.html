@@ -1,7 +1,6 @@
 <script src="../server/openapi-out.js"></script>
 <script type="text/javascript">
   function getMethodName(method, path) {
-    // console.log(method, path);
     return `${method} ${path}`;
   }
 
@@ -21,15 +20,19 @@
   }
 
   async function fetchVersion(id, version) {
-    if (window.versionCache) {
-      return window.versionCache;
+    if (!window.versionCache) {
+      window.versionCache = {};
+    }
+
+    if (window.versionCache[id + version]) {
+      return window.versionCache[id + version];
     }
 
     const result = await fetch(`/aws-sp-api/models/${id}/versions/${version}`);
     const json = await result.json();
 
     if (result.ok) {
-      return window.versionCache = json;
+      return window.versionCache[id + version] = json;
     } else {
       throw new Error('Failed to fetch schema: ' + JSON.stringify(json));
     }
@@ -47,7 +50,7 @@
         value: '',
         required: false,
       },
-      credentials: {
+      config: {
         value: '',
         required: true,
         type: 'rollun-aws-sp-api-credentials',
@@ -67,16 +70,13 @@
         value: false,
       },
       body: {
-        value: 'msg|',
+        value: 'msg|body',
       },
-      params: {
-        value: 'msg|',
-      },
-      headers: {
-        value: 'msg|',
+      pathParams: {
+        value: 'msg|pathParams',
       },
       query: {
-        value: 'msg|',
+        value: 'msg|query',
       },
     },
     label: function () {
@@ -97,42 +97,56 @@
         const node = this;
 
         window.utils.makeTypedInput('body', [{ value: "msg", label: "msg." }], undefined, this.body);
-        window.utils.makeTypedInput('params', [{ value: "msg", label: "msg." }], undefined, this.params);
-        window.utils.makeTypedInput('headers', [{ value: "msg", label: "msg." }], undefined, this.headers);
+        window.utils.makeTypedInput('pathParams', [{ value: "msg", label: "msg." }], undefined, this.pathParams);
         window.utils.makeTypedInput('query', [{ value: "msg", label: "msg." }], undefined, this.query);
 
-        async function renderInputSchema(schemas) {
+        function setSchemaDescription(id, version, title, description) {
+          $('#schema-description').html(description || title || '');
+
+          const openapiLink = `${window.location.origin}/aws-sp-api/models/${id}/versions/${version}`;
+          const swaggerEditorLink = `https://editor.swagger.io/?url=${openapiLink}`;
+          $('#schema-link').attr('href', swaggerEditorLink);
+        }
+
+        async function renderInputSchema(schemas, selectFirst = false) {
           $('#node-input-schema')
-            .html(schemas.map(({ id, name, version, title, description }) => {
+            .html(schemas.map(({ id, name, version, title, description }, schemaIndex) => {
               const key = `${id}|${version}`;
+              let isSelected = false;
 
-              const isSelected = key === node.schema;
-
-              if (isSelected) {
-                $('#schema-description').html(description || title || '');
-
-                const openapiLink = `${window.location.origin}/aws-sp-api/models/${id}/versions/${version}`;
-                const swaggerEditorLink = `https://editor.swagger.io/?url=${openapiLink}`;
-                $('#schema-link').attr('href', swaggerEditorLink);
+              if (selectFirst && schemaIndex === 0) {
+                setSchemaDescription(id, version, title, description);
+                isSelected = true;
+                node.schema = key;
+              } else if (key === node.schema){
+                setSchemaDescription(id, version, title, description);
+                isSelected = true;
               }
 
               return `<option value="${key}" ${isSelected ? 'selected' : ''}>${name} | ${version}</option>`;
             }).join('\n'));
         }
 
-        async function renderInputOperation() {
+        async function renderInputOperation(selectFirst = false) {
           if (node.schema) {
+              let firstSelected = false;
               const [schemaId, schemaVersion] = node.schema.split('|');
               const version = await fetchVersion(schemaId, schemaVersion);
 
               $('#node-input-operation')
-                .html(Object.entries(version.paths).map(([path, methods]) => {
+                .html(Object.entries(version.paths).map(([path, methods], pathIndex) => {
                   return Object.entries(methods).map(([method, { summary, description }]) => {
                     const operation = getMethodName(method, path);
-                    const isSelected = operation === node.operation;
-                    
-                    if (isSelected) {
+                    let isSelected = false;
+
+                    if (selectFirst && pathIndex === 0 && firstSelected === false) {
                       $('#operation-description').html(summary || description || '');
+                      isSelected = true;
+                      firstSelected = true;
+                      node.operation = operation;
+                    } else if (operation === node.operation){
+                      $('#operation-description').html(summary || description || '');
+                      isSelected = true;
                     }
 
                     return `<option value="${operation}" ${isSelected ? 'selected' : ''}>${method.toUpperCase()} ${path}</option>`;
@@ -151,18 +165,20 @@
           $('#node-input-schema').on('change', async (e) => {
             node.schema = e.target.value;
             await renderInputSchema(flatten);
+            await renderInputOperation(true);
           });
           $('#node-input-operation').on('change', async (e) => {
             node.operation = e.target.value;
             await renderInputOperation();
           });
 
-          await renderInputSchema(flatten);
-          await renderInputOperation();
+          await renderInputSchema(flatten, !node.schema);
+          await renderInputOperation(!node.operation);
         }
 
         await render();
       } catch (err) {
+        console.error(err);
           $('#aws-sp-api-errors').html(`
             <div class="ui-state-error">
               <p>
@@ -184,9 +200,10 @@
         <input type="text" id="node-input-name" />
     </div>
     <div class="form-row" style>
-        <label for="node-input-credentials"><i class="fa fa-book"></i> <span>Credentials:</span></label>
-        <input type="text" id="node-input-credentials">
+        <label for="node-input-config"><i class="fa fa-book"></i> <span>Credentials:</span></label>
+        <input type="text" id="node-input-config">
     </div>
+    <div class="form-tips"><b>Tip:</b> Rest API Always return errors & payload. This node in case of success sets payload to <strong>msg.payload</strong> and errors to <strong>msg.payload.error</strong></div>
     <div class="form-row">
         <label for="node-input-schema"><i class="fa fa-tasks"></i> <span>Schema:</span></label>
         <select style="width: 100%" id="node-input-schema"></select>
@@ -197,14 +214,13 @@
         <label for="node-input-operation"><i class="fa fa-tasks"></i> <span>Operation:</span></label>
         <select style="width: 100%" id="node-input-operation"></select>
         <pre id="operation-description"></pre>
-    <div class="">
-        <span> Debug: log all requests</span>
+    <div class="form-row">
+        <span> Debug: add request to output</span>
         <input style="margin-left: 5px; margin-bottom: 6px" type="checkbox" id="node-input-debug">
     </div>
     <h3>Inputs:</h3>
     <div class="form-row" id="body"></div>
-    <div class="form-row" id="params"></div>
-    <div class="form-row" id="headers"></div>
+    <div class="form-row" id="pathParams"></div>
     <div class="form-row" id="query"></div>
     <div class="form-tips"><b>Tip:</b> If you do not have some of the inputs, leave them empty.</div>
 </script>
