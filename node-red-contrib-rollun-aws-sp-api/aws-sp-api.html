@@ -101,79 +101,67 @@
         window.utils.makeTypedInput('headers', [{ value: "msg", label: "msg." }], undefined, this.headers);
         window.utils.makeTypedInput('query', [{ value: "msg", label: "msg." }], undefined, this.query);
 
-        const models = await fetchModelsList();
+        async function renderInputSchema(schemas) {
+          $('#node-input-schema')
+            .html(schemas.map(({ id, name, version, title, description }) => {
+              const key = `${id}|${version}`;
 
-        const flatten = models.map(({id, name, versions}) => 
-          versions.map((version) => ({ id, name, ...version })
-        )).flat();
+              const isSelected = key === node.schema;
 
-        $('#node-input-schema')
-          .html(flatten.map(({ id, name, version, title, description }) => {
-            const key = `${id}|${version}`;
+              if (isSelected) {
+                $('#schema-description').html(description || title || '');
 
-            const isSelected = key === node.schema;
+                const openapiLink = `${window.location.origin}/aws-sp-api/models/${id}/versions/${version}`;
+                const swaggerEditorLink = `https://editor.swagger.io/?url=${openapiLink}`;
+                $('#schema-link').attr('href', swaggerEditorLink);
+              }
 
-            if (isSelected) {
-              $('#schema-description').html(description || title || '');
-            }
-
-            return `<option value="${key}" ${isSelected ? 'selected' : ''}>${name} | ${version}</option>`;
-          }).join('\n'));
-
-        if (node.schema) {
-          const [schemaId, schemaVersion] = node.schema.split('|');
-          const version = await fetchVersion(schemaId, schemaVersion);
-
-          $('#node-input-operation')
-            .html(Object.entries(version.paths).map(([path, methods]) => {
-              return Object.entries(methods).map(([method, { summary, description }]) => {
-                const operation = getMethodName(method, path);
-                const isSelected = operation === node.operation;
-                
-                if (isSelected) {
-                  $('#operation-description').html(summary || description || '');
-                }
-
-                return `<option value="${operation}" ${isSelected ? 'selected' : ''}>${method.toUpperCase()} ${path}</option>`;
-              })
+              return `<option value="${key}" ${isSelected ? 'selected' : ''}>${name} | ${version}</option>`;
             }).join('\n'));
-
-          const openapiLink = `${window.location.origin}/aws-sp-api/models/${schemaId}/versions/${schemaVersion}`;
-          const swaggerEditorLink = `https://swagger-editor.rollun.net/?hideEditor=true&url=${openapiLink}`;
-          $('#swagger-ui').html(`
-              <div style="width: 100%">
-                <a href="${swaggerEditorLink}" style="margin-bottom: 10px; color: cornflowerblue; text-decoration: underline;" target="_blank">Open Swaager UI in new tab</a>
-                <div style="width: 100%">
-                  <iframe height="700px" width="100%" src="${swaggerEditorLink}"></iframe>
-                </div>
-              </div>
-            `);
         }
 
- 
+        async function renderInputOperation() {
+          if (node.schema) {
+              const [schemaId, schemaVersion] = node.schema.split('|');
+              const version = await fetchVersion(schemaId, schemaVersion);
 
-      // function render(config, url) {
-        // $('#node-input-operation')
-        //   .html(Object.entries(config.paths).map(([path, methods]) => {
-        //     return Object.entries(methods).map(([method, { summary, description }]) => {
-        //       const operation = getMethodName(method, path);
-        //       const isSelected = operation === node.operation;
-        //       return `<option value="${operation}" ${isSelected ? 'selected' : ''}>${method.toUpperCase()} ${path} ${summary || description || ''}</option>`;
-        //     })
-        //   }).join('\n'));
+              $('#node-input-operation')
+                .html(Object.entries(version.paths).map(([path, methods]) => {
+                  return Object.entries(methods).map(([method, { summary, description }]) => {
+                    const operation = getMethodName(method, path);
+                    const isSelected = operation === node.operation;
+                    
+                    if (isSelected) {
+                      $('#operation-description').html(summary || description || '');
+                    }
 
-      //   $('#node-input-server')
-      //     .html(config.servers.map(({ url }, idx) => {
-      //       const isSelected = idx === +node.server;
-      //       return `<option value="${idx}" ${isSelected ? 'selected' : ''}>#${idx + 1} ${url}</option>`;
-      //     }).join('\n'));
-      //   renderSwaggerUi(url);
-      // }
+                    return `<option value="${operation}" ${isSelected ? 'selected' : ''}>${method.toUpperCase()} ${path}</option>`;
+                  })
+                }).join('\n'));
+            }
+        }
 
-      // if (this.schema) {
-      //   const node = RED.nodes.node(this.schema);
-      //   render(node.schema, node.schemaUrl);
-      // }
+        async function render() {
+          const models = await fetchModelsList();
+
+          const flatten = models.map(({id, name, versions}) => 
+            versions.map((version) => ({ id, name, ...version })
+          )).flat();
+
+          $('#node-input-schema').on('change', async (e) => {
+            node.schema = e.target.value;
+            await renderInputSchema(flatten);
+          });
+          $('#node-input-operation').on('change', async (e) => {
+            node.operation = e.target.value;
+            await renderInputOperation();
+          });
+
+          await renderInputSchema(flatten);
+          await renderInputOperation();
+        }
+
+        await render();
       } catch (err) {
           $('#aws-sp-api-errors').html(`
             <div class="ui-state-error">
@@ -203,6 +191,7 @@
         <label for="node-input-schema"><i class="fa fa-tasks"></i> <span>Schema:</span></label>
         <select style="width: 100%" id="node-input-schema"></select>
         <pre id="schema-description"></pre>
+        <a id="schema-link" style="margin-bottom: 10px; color: cornflowerblue; text-decoration: underline;" target="_blank">Open Swagger UI in new tab</a>
     </div>
     <div class="form-row">
         <label for="node-input-operation"><i class="fa fa-tasks"></i> <span>Operation:</span></label>
@@ -218,5 +207,4 @@
     <div class="form-row" id="headers"></div>
     <div class="form-row" id="query"></div>
     <div class="form-tips"><b>Tip:</b> If you do not have some of the inputs, leave them empty.</div>
-    <div id="swagger-ui"></div>
 </script>
