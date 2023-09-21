@@ -1,4 +1,3 @@
-<script src="../server/openapi-out.js"></script>
 <script type="text/javascript">
   function getMethodName(method, path) {
     return `${method} ${path}`;
@@ -90,6 +89,28 @@
         'error',
         'success',
       ][index]
+    },
+    oneditsave: function() {
+        const node = this;
+
+        const existingConfig = node._config;
+        const current = node;
+
+        // for some reason node red does not detect changes in
+        // - schema
+        // - operation
+        // because of this, we need to manually detect changes
+        // and mark node as dirty
+
+        const somethingChanged = current.schema !== existingConfig.schema
+          || current.operation !== existingConfig.operation;
+
+        console.log('somethingChanged', somethingChanged);
+
+        if (somethingChanged) {
+          node.changed = true;
+          RED.events.emit('workspace:dirty', { dirty: true })
+        }
     },
     oneditprepare: async function () {
       try {
@@ -193,7 +214,7 @@
   });
 </script>
 
-<script type="text/x-red" data-template-name="rollun-aws-sp-api">
+<script type="text/html" data-template-name="rollun-aws-sp-api">
     <div id="aws-sp-api-errors"></div>
    <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> <span>Name:</span></label>
