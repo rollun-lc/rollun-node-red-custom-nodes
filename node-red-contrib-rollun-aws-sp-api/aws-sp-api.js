@@ -70,9 +70,7 @@ function getOperation(schemaId, version, method, path) {
     throw new Error(`Operation ${method} ${path} not found`);
   }
 
-  const apiName = path.split('/')[1];
-
-  return `${apiName}.${operation.operationId}`;
+  return `${schemaId}.${operation.operationId}`;
 }
 
 module.exports = function (RED) {

@@ -36,8 +36,11 @@ function readAwsSpApiModels(path) {
     const versions = fs.readdirSync(`${path}/${file}`);
 
     return {
+      // 'aplus-content-api-model' -> 'aplusContent'
+      id: file
+        .replace('-api-model', '')
+        .replace(/-[a-z]/g, (m) => m.toUpperCase().replace('-', '')),
       // convert 'aplus-content-api' to 'Aplus Content Api'
-      id: file,
       name: file
         .replace('-model', '')
         .replace(/^[a-z]/g, (m) => m.toUpperCase())
