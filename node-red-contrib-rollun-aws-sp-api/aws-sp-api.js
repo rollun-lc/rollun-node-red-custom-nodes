@@ -102,6 +102,7 @@ module.exports = function (RED) {
 
         const request = {
           operation,
+          options: { version },
         };
         if (body) {
           request.body = body;
