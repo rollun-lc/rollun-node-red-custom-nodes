@@ -1,7 +1,7 @@
 {
   "name": "node-red-contrib-rollun-aws-sp-api",
   "description": "Node-RED nodes to access AWS Selling Partner API",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "dependencies": {
     "amazon-sp-api": "^0.8.4"
   },
