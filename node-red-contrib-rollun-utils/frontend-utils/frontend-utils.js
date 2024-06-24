@@ -1,6 +1,5 @@
 "use strict";
 
-
 window.utils = {
   // for this to work in form need to be
   // hidden input with node-input-{name}   id      <input type="hidden" id="node-input-partNumber">
