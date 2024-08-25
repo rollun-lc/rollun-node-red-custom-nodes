@@ -1,6 +1,9 @@
 const { readAwsSpApiModels } = require('./read-all-models');
 const { SellingPartner } = require('amazon-sp-api');
-const { getTypedFieldValue } = require('node-red-contrib-rollun-backend-utils');
+const {
+  getTypedFieldValue,
+  displayStatus,
+} = require('node-red-contrib-rollun-backend-utils');
 
 const models = readAwsSpApiModels('selling-partner-api-models/models');
 
@@ -84,6 +87,7 @@ module.exports = function (RED) {
 
     node.on('input', async function (msg) {
       try {
+        displayStatus(node, 'in-progress');
         const spCLient = createSpClient(creds);
 
         const [schemaId, version] = n.schema.split('|');
@@ -122,8 +126,10 @@ module.exports = function (RED) {
 
         msg.payload = await spCLient.callAPI(request);
 
+        displayStatus(node, 'done');
         node.send([null, msg]);
       } catch (error) {
+        displayStatus(node, 'error');
         msg.payload = { error };
         node.send([msg]);
       }
