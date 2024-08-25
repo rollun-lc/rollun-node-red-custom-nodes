@@ -244,6 +244,31 @@ function validateObjectSchema(schema, data) {
   return { value };
 }
 
+/**
+ *
+ * @param {*} node
+ * @param {'in-progress' | 'error' | 'done'} status
+ */
+
+function displayStatus(node, status) {
+  let color;
+  switch (status) {
+    case 'in-progress':
+      color = 'blue';
+      break;
+    case 'error':
+      color = 'red';
+      break;
+    case 'done':
+      color = 'green';
+      break;
+    default:
+      throw new Error(`Unknown status: ${status}`);
+  }
+
+  node.status({ fill: color, shape: 'ring', text: status });
+}
+
 module.exports = {
   defaultLogger,
   ElasticLogger,
@@ -254,4 +279,5 @@ module.exports = {
   wait,
   getLifecycleToken,
   validateObjectSchema,
+  displayStatus,
 }
