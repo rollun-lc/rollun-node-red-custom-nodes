@@ -9,7 +9,7 @@ const { createHash } = require('crypto');
  */
 function resolvePath(obj, path) {
   path = path.replace(/\[(\w+)\]/g, '.$1'); // convert indexes to properties
-  path = path.replace(/^\./, '');           // strip a leading dot
+  path = path.replace(/^\./, ''); // strip a leading dot
   var a = path.split('.');
   for (var i = 0, n = a.length; i < n; ++i) {
     var k = a[i];
@@ -83,9 +83,10 @@ function getTypedFieldValue(msg, val = '') {
 
 function resolvePayload(msg, requestPayload) {
   try {
-    const parsedPayload = typeof requestPayload === "string"
-      ? JSON.parse(requestPayload)
-      : requestPayload;
+    const parsedPayload =
+      typeof requestPayload === 'string'
+        ? JSON.parse(requestPayload)
+        : requestPayload;
     const resolve = (acc, [key, value]) => {
       // resolve typed inputs
       if (typeof value === 'string') {
@@ -99,23 +100,20 @@ function resolvePayload(msg, requestPayload) {
         return acc;
       }
       const result = _.toPairs(value).reduce(resolve, []);
-      _.size(result) > 0 && acc.push([key, _.fromPairs(result)])
+      _.size(result) > 0 && acc.push([key, _.fromPairs(result)]);
       return acc;
-    }
-    return _.fromPairs(
-      _.toPairs(parsedPayload)
-        .reduce(resolve, [])
-    )
+    };
+    return _.fromPairs(_.toPairs(parsedPayload).reduce(resolve, []));
   } catch (e) {
-    return getTypedFieldValue(msg, requestPayload)
+    return getTypedFieldValue(msg, requestPayload);
   }
 }
 
 function wait(duration = 1000) {
   if (duration < 0) {
-    throw new TypeError(`duration cannot be below 0, got ${duration}`)
+    throw new TypeError(`duration cannot be below 0, got ${duration}`);
   }
-  return new Promise(resolve => setTimeout(resolve, 1000));
+  return new Promise((resolve) => setTimeout(resolve, 1000));
 }
 
 /**
@@ -128,19 +126,25 @@ function getLifecycleToken({ req, openapiRequest = {}, _msgid } = {}) {
   function getLTFromMsg(msg = {}) {
     const { req, _msgid } = msg;
     if (req && req.lToken) return req.lToken;
-    if (_msgid) return createHash('md5').update(_msgid).digest('hex').toUpperCase();
+    if (_msgid)
+      return createHash('md5').update(_msgid).digest('hex').toUpperCase();
     return null;
   }
 
   function getPLTFromReq(req) {
     if (!req) return null;
-    return req.plToken || req.header('lifecycle_token') || req.header('lifecycletoken') || null;
+    return (
+      req.plToken ||
+      req.header('lifecycle_token') ||
+      req.header('lifecycletoken') ||
+      null
+    );
   }
 
   return {
     plToken: openapiRequest.plToken || getPLTFromReq(req),
     lToken: openapiRequest.lToken || getLTFromMsg({ req, _msgid }),
-  }
+  };
 }
 
 class UDPClient {
@@ -151,32 +155,25 @@ class UDPClient {
   }
 
   static _encodeData(data) {
-    const encodedDataString = typeof data === 'string'
-      ? data
-      : JSON.stringify(data);
+    const encodedDataString =
+      typeof data === 'string' ? data : JSON.stringify(data);
     return Buffer.from(encodedDataString);
   }
 
-  send(data, cb = () => {
-  }) {
+  send(data, cb = () => {}) {
     if (cb) {
-      this._client.send(
-        UDPClient._encodeData(data),
-        this.port,
-        this.host,
-        cb
-      )
+      this._client.send(UDPClient._encodeData(data), this.port, this.host, cb);
     } else {
       return new Promise((resolve, reject) => {
         this._client.send(
           UDPClient._encodeData(data),
           this.port,
           this.host,
-          error => error ? reject(error) : resolve()
-        )
+          (error) => (error ? reject(error) : resolve())
+        );
       });
     }
-  };
+  }
 
   destroy() {
     this._client.disconnect();
@@ -191,17 +188,23 @@ class ElasticLogger {
     this.udp_client = new UDPClient(opts.host, opts.port);
   }
 
-  async _logProduction(log_level, message, context, lifecycle_token, parent_lifecycle_token) {
-
+  async _logProduction(
+    log_level,
+    message,
+    context,
+    lifecycle_token,
+    parent_lifecycle_token
+  ) {
     try {
       const log = {
         index_name: this.index_name,
         level: log_level,
         message,
         context: context ? JSON.stringify(context) : null,
-        '@timestamp': (new Date()).toISOString(),
+        '@timestamp': new Date().toISOString(),
         lifecycle_token: this.lifecycle_token || lifecycle_token || null,
-        parent_lifecycle_token: this.parent_lifecycle_token || parent_lifecycle_token || null
+        parent_lifecycle_token:
+          this.parent_lifecycle_token || parent_lifecycle_token || null,
       };
       console.log('log', message);
       await this.udp_client.send(log);
@@ -247,23 +250,21 @@ function validateObjectSchema(schema, data) {
 /**
  *
  * @param {*} node
- * @param {'in-progress' | 'error' | 'done'} status
+ * @param {'in-progress' | 'error' | 'done' | 'warning'} status
  */
 
 function displayStatus(node, status) {
-  let color;
-  switch (status) {
-    case 'in-progress':
-      color = 'blue';
-      break;
-    case 'error':
-      color = 'red';
-      break;
-    case 'done':
-      color = 'green';
-      break;
-    default:
-      throw new Error(`Unknown status: ${status}`);
+  const colors = {
+    'in-progress': 'blue',
+    error: 'red',
+    done: 'green',
+    warning: 'yellow',
+  };
+
+  const color = colors[status];
+
+  if (!color) {
+    throw new Error(`Unknown status: ${status}`);
   }
 
   node.status({ fill: color, shape: 'ring', text: status });
@@ -280,4 +281,4 @@ module.exports = {
   getLifecycleToken,
   validateObjectSchema,
   displayStatus,
-}
+};
