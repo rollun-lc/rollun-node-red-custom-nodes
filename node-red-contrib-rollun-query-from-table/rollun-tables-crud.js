@@ -1,4 +1,4 @@
-const { getTypedFieldValue, defaultLogger } = require('node-red-contrib-rollun-backend-utils')
+const { getTypedFieldValue, displayStatus } = require('node-red-contrib-rollun-backend-utils')
 const { HttpDatastore } = require('./http-datastore');
 
 module.exports = function (RED) {
@@ -7,8 +7,10 @@ module.exports = function (RED) {
     const node = this;
 
     node.on('input', function (msg) {
+      displayStatus(node, 'in-progress');
       const makeError = (node, text) => {
         msg.payload = { error: text };
+        displayStatus(node, 'error');
         node.send([msg, null])
       };
 
@@ -33,12 +35,15 @@ module.exports = function (RED) {
         .then(result => {
           msg.payload = result;
           if (result && result.error) {
+            displayStatus(node, 'error');
             node.send([msg, null]);
           } else {
+            displayStatus(node, 'done');
             node.send([null, msg]);
           }
         })
         .catch(err => {
+          displayStatus(node, 'error');
           console.log(err);
           msg.payload = { error: err.message, request: err.request };
           node.send([msg, null]);
