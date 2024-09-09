@@ -1,5 +1,12 @@
-const { getTypedFieldValue, displayStatus } = require('node-red-contrib-rollun-backend-utils')
+const {
+  getTypedFieldValue,
+  displayStatus,
+} = require('node-red-contrib-rollun-backend-utils');
 const { HttpDatastore } = require('./http-datastore');
+
+function isEmptyArrayResponse(response) {
+  return Array.isArray(response) && response.length === 0;
+}
 
 module.exports = function (RED) {
   function DatastoreCRUD(config) {
@@ -11,7 +18,7 @@ module.exports = function (RED) {
       const makeError = (node, text) => {
         msg.payload = { error: text };
         displayStatus(node, 'error');
-        node.send([msg, null])
+        node.send([msg, null]);
       };
 
       if (!config.url) return makeError(node, `url is required!`);
@@ -26,30 +33,33 @@ module.exports = function (RED) {
         timeout: +timeout,
         idField,
         msg,
-        logRequest: log
+        logRequest: log,
       });
 
       const payload = getTypedFieldValue(msg, config.payload);
 
       datastore[action]('', payload)
-        .then(result => {
+        .then((result) => {
           msg.payload = result;
-          if (result && result.error) {
+          const isErrorResponse = result && result.error;
+
+          if (isErrorResponse) {
             displayStatus(node, 'error');
             node.send([msg, null]);
-          } else {
-            displayStatus(node, 'done');
-            node.send([null, msg]);
+            return;
           }
+
+          const status = isEmptyArrayResponse(result) ? 'warning' : 'done';
+          displayStatus(node, status);
+          node.send([null, msg]);
         })
-        .catch(err => {
+        .catch((err) => {
           displayStatus(node, 'error');
-          console.log(err);
           msg.payload = { error: err.message, request: err.request };
           node.send([msg, null]);
-        })
+        });
     });
   }
 
-  RED.nodes.registerType("rollun-tables-crud", DatastoreCRUD);
-}
+  RED.nodes.registerType('rollun-tables-crud', DatastoreCRUD);
+};
