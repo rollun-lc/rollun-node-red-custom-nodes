@@ -3,8 +3,8 @@ name: Deploy AWS SP API
 on:
   push:
     paths:
-      - 'node-red-contrib-rollun-aws-sp-api/**'
-      - '.github/workflows/deploy-aws-sp-api.yml'
+      - "node-red-contrib-rollun-aws-sp-api/**"
+      - ".github/workflows/deploy-aws-sp-api.yml"
     branches:
       - master
 
@@ -13,19 +13,18 @@ defaults:
     working-directory: node-red-contrib-rollun-aws-sp-api
 
 jobs:
-  deploy:
+  publish-npm:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v1
         with:
-          node-version: '16.x'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: "16.x"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Cache node_modules
         uses: actions/cache@master
-        id:
-          cache-node-modules
+        id: cache-node-modules
         with:
           path: node_modules
           key: ${{ runner.os }}-cache-node-modules-${{ hashFiles('**/package.json') }}
@@ -40,6 +39,11 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+  refresh-node-red:
+    runs-on: ubuntu-latest
+    needs: publish-npm
+    steps:
+      - uses: actions/checkout@v2
       - uses: rollun-com/actions/refresh-node-red-module@master
         with:
           name: node-red-contrib-rollun-aws-sp-api
